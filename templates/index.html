@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ponto Médio entre Cidades</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    #map { height: 420px; margin-top: 20px; }
+    .result { white-space: pre-wrap; background: #fafafa; padding: 10px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<h1>Ponto Médio entre Cidades (com Grafo + Mapa)</h1>
+
+<form id="form">
+  <label>Cidade A:</label>
+  <input id="cityA" style="width:100%;" placeholder="Ex: Av Atlântica, Rio de Janeiro Brazil" />
+
+  <label>Cidade B:</label>
+  <input id="cityB" style="width:100%;" placeholder="Ex: Aeroporto Santos Dumont, Rio de Janeiro Brazil" />
+
+  <button type="submit">Calcular</button>
+</form>
+
+<div class="result" id="result"></div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map = L.map('map').setView([0,0], 2);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19
+}).addTo(map);
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const cityA = document.getElementById("cityA").value;
+  const cityB = document.getElementById("cityB").value;
+
+  const resp = await fetch("/api/midpoint", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ cityA, cityB })
+  });
+
+  const data = await resp.json();
+  // document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+
+  const latA = data.cityA.lat, lonA = data.cityA.lon;
+  const latB = data.cityB.lat, lonB = data.cityB.lon;
+  const latM = data.midpoint.lat, lonM = data.midpoint.lon;
+
+  const markers = [
+    L.marker([latA, lonA]).bindPopup("Cidade A"),
+    L.marker([latB, lonB]).bindPopup("Cidade B"),
+    L.marker([latM, lonM]).bindPopup("Ponto Médio")
+  ];
+
+  markers.forEach(m => m.addTo(map));
+
+  const line = L.polyline([[latA, lonA],[latM, lonM],[latB, lonB]], {color:"blue"});
+  line.addTo(map);
+
+  map.fitBounds(line.getBounds(), { padding: [20,20] });
+});
+</script>
+
+</body>
+</html>
