@@ -174,4 +174,4 @@ Garantindo funcionamento mesmo com respostas diferentes da API.
 
 ## 🧑‍💻 Autor
 
-**Thiago Pereira**
+**Gustavo Costa**
