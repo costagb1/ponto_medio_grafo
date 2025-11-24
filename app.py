@@ -3,8 +3,12 @@ import math
 import requests
 import networkx as nx
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+
+midpoint_results = []
 
 # Endpoints da OpenAPI
 GEOCODING_URL = "https://geocoding.openapi.it/geocode"
@@ -230,7 +234,7 @@ def midpoint_api():
     path_B_C = nx.shortest_path(G, "B", "C", weight="weight")
     path_A_B = nx.shortest_path(G, "A", "B", weight="weight")
 
-    return jsonify({
+    result = {
         "cityA": {
             "input": cityA,
             "lat": latA,
@@ -266,7 +270,20 @@ def midpoint_api():
                 "B_to_C_via_M": path_B_C,
             }
         }
-    })
+    }
+
+    midpoint_results.append(result)
+
+    return jsonify(result)
+
+
+@app.route("/api/results", methods=["GET"])
+def get_results():
+    """
+    Retorna todos os calculos feitos .
+    """
+
+    return midpoint_results
 
 
 if __name__ == "__main__":
