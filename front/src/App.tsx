@@ -1,12 +1,13 @@
-import { useMap } from 'react-leaflet'
 import './App.css'
 import { Button } from './components/ui/button'
 import { Card } from './components/ui/card'
 import { Input } from './components/ui/input'
 import { Label } from './components/ui/label'
 import L from 'leaflet'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
+import { quickSort } from './utils/quick-sort-results'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select'
 
 interface MapMarker {
   lat: number
@@ -27,7 +28,7 @@ interface ReverseGeocode {
   postalCode?: string
 }
 
-interface ApiResponse {
+export interface ApiResponse {
   cityA: CityData
   cityB: CityData
   cityC: CityData
@@ -67,6 +68,7 @@ function App() {
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([])
   const [allResults, setAllResults] = useState<ApiResponse[]>([])
   const [loadingResults, setLoadingResults] = useState<boolean>(false)
+  const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default')
   
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
@@ -161,6 +163,15 @@ function App() {
       setLoadingResults(false)
     }
   }
+
+  const getSortedResults = useCallback((): ApiResponse[] => {
+    if (sortOrder === 'default') {
+      return allResults.slice().reverse()
+    }
+    const sortedArray = allResults.slice()
+    quickSort(sortedArray, 0, sortedArray.length - 1, sortOrder === 'asc')
+    return sortedArray
+  }, [allResults, sortOrder])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
@@ -301,9 +312,24 @@ function App() {
       </div>
 
       <div className='col-span-1 flex flex-col gap-3'>
-        <h2 className='text-2xl font-semibold text-transparent bg-clip-text bg-linear-to-br from-neutral-200 to-neutral-500'>
-          Histórico
-        </h2>
+        <div className='flex items-center justify-between'>
+          <h2 className='text-2xl font-semibold text-transparent bg-clip-text bg-linear-to-br from-neutral-200 to-neutral-500'>
+            Histórico
+          </h2>
+          
+          {allResults.length > 0 && (
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'default' | 'asc' | 'desc')}>
+              <SelectTrigger className='w-32 bg-neutral-800 border-neutral-600 text-neutral-200'>
+                <SelectValue placeholder='Ordenar' />
+              </SelectTrigger>
+              <SelectContent className='bg-neutral-800 border-neutral-600'>
+                <SelectItem value='default' className='text-neutral-200 focus:bg-neutral-700'>Padrão</SelectItem>
+                <SelectItem value='asc' className='text-neutral-200 focus:bg-neutral-700'>A-Z</SelectItem>
+                <SelectItem value='desc' className='text-neutral-200 focus:bg-neutral-700'>Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
 
         <div className='flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-200px)]'>
           {loadingResults ? (
@@ -311,10 +337,10 @@ function App() {
           ) : allResults.length === 0 ? (
             <p className='text-neutral-400 text-sm'>Nenhum resultado ainda.</p>
           ) : (
-            allResults.slice().reverse().map((resultItem, index) => (
+            getSortedResults().map((resultItem, index) => (
               <Card
                 key={index}
-                className='p-2 bg-neutral-800 border-neutral-700 cursor-pointer hover:bg-neutral-700 transition-colors'
+                className='p-2 bg-neutral-800 border-neutral-700 cursor-pointer hover:bg-neutral-700 transition-colors gap-3'
                 onClick={() => {
                   const latA = resultItem.cityA.lat
                   const lonA = resultItem.cityA.lon
